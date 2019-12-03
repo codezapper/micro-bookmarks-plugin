@@ -1,11 +1,11 @@
 [{
   "Name": "bookmarks",
-  "Description": "adds bookmarks support",
-  "Tags": ["bookmarks"],
+  "Description": "adds bookmark support",
+  "Tags": ["bookmarks", "marks"],
   "Versions": [
     {
-      "Version": "1.0.0",
-      "Url": "https://github.com/codezapper/micro-bookmarks-plugin/archive/1.0.0.zip",
+      "Version": "1.0.1",
+      "Url": "https://github.com/davidalbertainley/micro-bookmarks-plugin/archive/1.0.0.zip",
       "Require": {
         "micro": ">=1.3.3"
       }
