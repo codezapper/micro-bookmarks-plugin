@@ -2,62 +2,77 @@ MakeCommand("toggle_bookmark", "bookmarks.toggle", 0)
 MakeCommand("next_bookmark", "bookmarks.goto_next", 0)
 
 bookmarks = {}
-current_bookmark = {}
-
-function bookmark_is_present(cur_path, cur_line)
-	for i = 0, #bookmarks[cur_path] do
-		if (bookmarks[cur_path][i] == cur_line) then
-			bookmarks[cur_path][i] = nil
-			return nil
-		end
-	end
-
-	return cur_line
-end
-
-function get_count()
-	count = 0
-	for key, value in pairs(bookmarks[cur_path]) do
-		if (value ~= nil) then
-			count = count + 1
-		end
-	end
-	return count
-end
 
 function toggle()
-	cur_view = CurView()
-	cur_path = cur_view.Buf.Path
-	cur_line = cur_view.Cursor.Y
-
-	if (bookmarks[cur_path] == nil)	then
-		bookmarks[cur_path] = {}
-		bookmarks[cur_path][0] = cur_line
-		current_bookmark[cur_path] = 0
-		cur_view:GutterMessage("bookmarks", cur_line+1, "Bookmark 0", 2)
-		return
+	local view = CurView()
+	local newMark = view.Cursor.Y
+	
+	local previousMark = false -- Previous mark here?
+	
+	---[[ If there's already a mark in our spot, remove it.
+	----- Then clear the gutter, resort the table from smallest to largest.
+	----- And as long as we didn't remove the last bookmark, rebuild.
+	for i,v in ipairs(bookmarks) do
+		if (v == newMark) then
+			previousMark = true
+			table.remove(bookmarks, i)
+			CurView():ClearGutterMessages("bookmarks")
+			table.sort(bookmarks)
+			if #bookmarks ~= 0 then
+				rebuildMarks()
+			end
+		end
 	end
+	--]]
+	
+	---[[ If there wasn't a mark there previously, just add one and resort.
+	if (previousMark == false) then	
+		table.insert(bookmarks, newMark)
+		view:GutterMessage("bookmarks", newMark + 1, "Bookmark added.", 1)
+		table.sort(bookmarks)
+	end
+	--]]
+end
 
-	count = get_count()
-	bookmarks[cur_path][count] = bookmark_is_present(cur_path, cur_line)
-	cur_view:GutterMessage("bookmarks", cur_line+1, "Bookmark " .. count, 2)
+function rebuildMarks()
+  ---[[ Funny enough, the "Bookmark removed." message comes when we rebuild.
+	local view = CurView()
+	for i,v in ipairs(bookmarks) do
+		view:GutterMessage("bookmarks", v + 1, "Bookmark removed.", 1)
+	end
+	--]]
 end
 
 function goto_next()
-	cur_path = CurView().Buf.Path
-
-	if ((bookmarks[cur_path] == nil) or (get_count() == 0)) then
-		return
+	local view = CurView()
+	local bookmarkTableSize = #bookmarks
+	local currentMarkSpot = 0
+	
+	---[[ If I'm on a bookmark and toggle to go to the next, 
+	----- Take the current spot.
+	for i,v in ipairs(bookmarks) do
+		if (view.Cursor.Y == v) then
+			currentMarkSpot = v
+		end
 	end
-
-	current_bookmark[cur_path] = current_bookmark[cur_path] + 1
-	if (current_bookmark[cur_path] >= get_count()) then
-		current_bookmark[cur_path] = 0
+	
+	----- Then look to see if there's a mark lower in the buffer.
+	noFurtherMark = true
+	for i,v in ipairs(bookmarks) do
+		if (v > currentMarkSpot) then
+			view.Cursor.Y = v
+			noFurtherMark = false
+			break
+		end
 	end
-
-	CurView().Cursor.Y = bookmarks[cur_path][current_bookmark[cur_path]]
+	
+	----- If there's nothing lower, go to the first (highest) mark.
+	if (noFurtherMark == true) then
+		view.Cursor.Y = bookmarks[1]
+	end
 	CurView():Relocate()
+	--]]
 end
 
-BindKey("F11", "bookmarks.toggle")
-BindKey("F10", "bookmarks.goto_next")
+BindKey("F5", "bookmarks.toggle")
+BindKey("F6", "bookmarks.goto_next")
